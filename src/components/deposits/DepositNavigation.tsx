@@ -164,7 +164,7 @@ export default function DepositNavigation({ user }: DepositNavigationProps) {
                   </button>
                   <button
                     type="button"
-                    onClick={() => handleProfileAction('/depositmanager/profile#change-password')}
+                    onClick={() => handleProfileAction('/depositmanager/profile/change-password')}
                     className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-blue-50"
                   >
                     Change Password
