@@ -1,0 +1,163 @@
+'use client';
+
+import { useRouter, usePathname } from 'next/navigation';
+// Using a plain <img> to allow graceful fallback when logo is missing
+import { authService } from '@/lib/deposits/auth';
+import { User } from '@/lib/deposits/types';
+import { useState, useTransition } from 'react';
+
+interface DepositNavigationProps {
+  user: User;
+}
+
+export default function DepositNavigation({ user }: DepositNavigationProps) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const [isPending, startTransition] = useTransition();
+  const [activeNav, setActiveNav] = useState<string>('');
+
+  const handleNavigation = (path: string) => {
+    setActiveNav(path);
+    startTransition(() => {
+      router.push(path);
+    });
+  };
+
+  const handleLogout = () => {
+    authService.logout();
+    router.push('/depositmanager/login');
+  };
+
+  const getNavItems = () => {
+    if (user.role === 'account') {
+      return [
+        { label: 'Dashboard', path: '/depositmanager/account', icon: '📊' },
+        { label: 'Requirements', path: '/depositmanager/account/requirements', icon: '📋' },
+        { label: 'Banks', path: '/depositmanager/account/banks', icon: '🏦' },
+        { label: 'Quotes', path: '/depositmanager/account/quotes', icon: '💰' },
+        { label: 'Reports', path: '/depositmanager/account/reports', icon: '📈' }
+      ];
+    } else if (user.role === 'bank') {
+      return [
+        { label: 'Dashboard', path: '/depositmanager/bank', icon: '📊' },
+        { label: 'Requirements', path: '/depositmanager/bank/requirements', icon: '📋' },
+        { label: 'My Quotes', path: '/depositmanager/bank/quotes', icon: '💰' },
+        { label: 'History', path: '/depositmanager/bank/history', icon: '📜' }
+      ];
+    } else if (user.role === 'commissioner') {
+      return [
+        { label: 'Dashboard', path: '/depositmanager/commissioner', icon: '📊' },
+        { label: 'Requirements', path: '/depositmanager/commissioner/requirements', icon: '📋' },
+        { label: 'Quotes', path: '/depositmanager/commissioner/quotes', icon: '💰' },
+        { label: 'Reports', path: '/depositmanager/commissioner/reports', icon: '📈' }
+      ];
+    }
+    return [];
+  };
+
+  const navItems = getNavItems();
+
+  return (
+    <nav className="bg-white shadow-lg border-b-2 border-blue-600">
+      {/* Loading Bar */}
+      {(isPending || activeNav) && (
+        <div className="h-1 bg-blue-600 animate-pulse"></div>
+      )}
+      
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex justify-between items-center h-16">
+          {/* App Icon and Title */}
+          <div className="flex items-center space-x-3 min-w-0">
+            <div className="relative w-9 h-9 sm:w-11 sm:h-11 rounded-xl bg-linear-to-br from-blue-600 via-indigo-600 to-cyan-500 flex items-center justify-center shadow-lg ring-2 ring-blue-100 shrink-0">
+              <span aria-hidden className="text-white text-base sm:text-xl font-semibold">₹</span>
+              <span className="absolute -right-1 -top-1 h-2.5 w-2.5 rounded-full bg-emerald-400 ring-2 ring-white" />
+            </div>
+            <div className="min-w-0 leading-tight">
+              <h1 className="text-base sm:text-lg font-extrabold tracking-tight whitespace-nowrap truncate bg-linear-to-r from-blue-700 via-indigo-700 to-cyan-600 bg-clip-text text-transparent">
+                e-Nivesh
+              </h1>
+              <p className="hidden sm:block text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-500 whitespace-nowrap truncate">
+                Treasury Deposit Desk
+              </p>
+            </div>
+          </div>
+
+          {/* Navigation Items */}
+          <div className="hidden md:flex items-center space-x-1">
+            {navItems.map((item) => {
+              // Exact match for dashboard, startsWith for sub-pages
+              const isDashboard = item.label === 'Dashboard';
+              const isActive = isDashboard 
+                ? pathname === item.path 
+                : pathname === item.path || pathname?.startsWith(item.path + '/');
+              return (
+                <button
+                  key={item.path}
+                  onClick={() => handleNavigation(item.path)}
+                  disabled={isPending}
+                  className={`
+                    px-4 py-2 rounded-lg font-medium transition-all duration-200 flex items-center space-x-2
+                    ${isActive 
+                      ? 'bg-blue-600 text-white shadow-md' 
+                      : 'text-gray-700 hover:bg-blue-50 hover:text-blue-600'
+                    }
+                    ${isPending ? 'opacity-50 cursor-not-allowed' : ''}
+                  `}
+                >
+                  <span className="text-lg">{item.icon}</span>
+                  <span>{item.label}</span>
+                  {isPending && activeNav === item.path && (
+                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* User Info and Logout */}
+          <div className="flex items-center space-x-4">
+            <div className="text-right hidden sm:block">
+              <p className="text-sm font-semibold text-gray-800">{user.name}</p>
+              <p className="text-xs text-gray-500 capitalize">{user.role}</p>
+            </div>
+            <button
+              onClick={handleLogout}
+              className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors duration-200 shadow-md"
+            >
+              Logout
+            </button>
+          </div>
+        </div>
+
+        {/* Mobile Navigation */}
+        <div className="md:hidden pb-4 flex overflow-x-auto space-x-2">
+          {navItems.map((item) => {
+            // Exact match for dashboard, startsWith for sub-pages
+            const isDashboard = item.label === 'Dashboard';
+            const isActive = isDashboard 
+              ? pathname === item.path 
+              : pathname === item.path || pathname?.startsWith(item.path + '/');
+            return (
+              <button
+                key={item.path}
+                onClick={() => handleNavigation(item.path)}
+                disabled={isPending}
+                className={`
+                  px-3 py-2 rounded-lg font-medium whitespace-nowrap flex items-center space-x-2 text-sm
+                  ${isActive 
+                    ? 'bg-blue-600 text-white shadow-md' 
+                    : 'text-gray-700 hover:bg-blue-50'
+                  }
+                  ${isPending ? 'opacity-50' : ''}
+                `}
+              >
+                <span>{item.icon}</span>
+                <span>{item.label}</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    </nav>
+  );
+}

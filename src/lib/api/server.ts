@@ -1,4 +1,5 @@
 import { buildAuthHeaders } from '@/lib/hmac';
+import { maybeEnableInsecureLocalhostTls } from '@/lib/tls';
 
 function getBaseUrl() {
   return process.env.BASE_URL || '';
@@ -27,10 +28,7 @@ async function request<T>(
     next: { revalidate: 0 },
   };
   
-  // For Node.js environment, disable certificate validation for localhost
-  if (typeof process !== 'undefined' && url.hostname === 'localhost') {
-    process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
-  }
+  maybeEnableInsecureLocalhostTls(url.toString());
   
   const res = await fetch(url.toString(), fetchOptions);
   

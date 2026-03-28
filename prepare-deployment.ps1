@@ -23,6 +23,20 @@ Copy-Item -Path "DEPLOYMENT.md" -Destination "$deployFolder\DEPLOYMENT.md"
 Copy-Item -Path "deploy.ps1" -Destination "$deployFolder\deploy.ps1"
 Copy-Item -Path "web.config" -Destination "$deployFolder\web.config"
 
+# Force the packaged production env to use the IIS HTTPS endpoint.
+$packagedProductionEnv = @"
+# Production environment variables
+# API is hosted in IIS on HTTPS binding port 5443.
+BASE_URL=https://localhost:5443/api
+ALLOW_INSECURE_LOCALHOST_TLS=true
+
+# Use your actual production API keys
+API_KEY=TEST_API_KEY_12345678901234567890123456789012
+SECRET_KEY=TEST_SECRET_KEY_67890ABCDEFGHIJ1234567890
+"@
+
+Set-Content -Path "$deployFolder\.env.production" -Value $packagedProductionEnv
+
 # Create logs directory
 New-Item -ItemType Directory -Path "$deployFolder\logs" | Out-Null
 

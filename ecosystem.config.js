@@ -12,7 +12,8 @@ module.exports = {
       env: {
         NODE_ENV: 'production',
         PORT: 3000,
-        HOSTNAME: '0.0.0.0'
+        HOSTNAME: '0.0.0.0',
+        BASELINE_BROWSER_MAPPING_IGNORE_OLD_DATA: 'true'
       },
       error_file: './logs/err.log',
       out_file: './logs/out.log',
