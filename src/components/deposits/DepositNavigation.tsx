@@ -4,7 +4,7 @@ import { useRouter, usePathname } from 'next/navigation';
 // Using a plain <img> to allow graceful fallback when logo is missing
 import { authService } from '@/lib/deposits/auth';
 import { User } from '@/lib/deposits/types';
-import { useState, useTransition } from 'react';
+import { useEffect, useRef, useState, useTransition } from 'react';
 
 interface DepositNavigationProps {
   user: User;
@@ -15,6 +15,8 @@ export default function DepositNavigation({ user }: DepositNavigationProps) {
   const pathname = usePathname();
   const [isPending, startTransition] = useTransition();
   const [activeNav, setActiveNav] = useState<string>('');
+  const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
+  const profileMenuRef = useRef<HTMLDivElement | null>(null);
 
   const handleNavigation = (path: string) => {
     setActiveNav(path);
@@ -27,6 +29,26 @@ export default function DepositNavigation({ user }: DepositNavigationProps) {
     authService.logout();
     router.push('/depositmanager/login');
   };
+
+  const handleProfileAction = (path: string) => {
+    setIsProfileMenuOpen(false);
+    handleNavigation(path);
+  };
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (!profileMenuRef.current) {
+        return;
+      }
+
+      if (!profileMenuRef.current.contains(event.target as Node)) {
+        setIsProfileMenuOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const getNavItems = () => {
     if (user.role === 'account') {
@@ -114,18 +136,49 @@ export default function DepositNavigation({ user }: DepositNavigationProps) {
             })}
           </div>
 
-          {/* User Info and Logout */}
-          <div className="flex items-center space-x-4">
+          {/* User Info and Profile Flyout */}
+          <div className="flex items-center space-x-3" ref={profileMenuRef}>
             <div className="text-right hidden sm:block">
               <p className="text-sm font-semibold text-gray-800">{user.name}</p>
-              <p className="text-xs text-gray-500 capitalize">{user.role}</p>
             </div>
-            <button
-              onClick={handleLogout}
-              className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors duration-200 shadow-md"
-            >
-              Logout
-            </button>
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setIsProfileMenuOpen((prev) => !prev)}
+                className="h-10 w-10 rounded-full bg-blue-600 hover:bg-blue-700 text-white shadow-md transition-colors duration-200 flex items-center justify-center"
+                aria-haspopup="menu"
+                aria-expanded={isProfileMenuOpen}
+                aria-label="Open profile menu"
+              >
+                <span className="text-lg" aria-hidden>👤</span>
+              </button>
+
+              {isProfileMenuOpen && (
+                <div className="absolute right-0 mt-2 w-52 bg-white border border-gray-200 rounded-xl shadow-lg py-2 z-50">
+                  <button
+                    type="button"
+                    onClick={() => handleProfileAction('/depositmanager/profile')}
+                    className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-blue-50"
+                  >
+                    Profile
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleProfileAction('/depositmanager/profile#change-password')}
+                    className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-blue-50"
+                  >
+                    Change Password
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleLogout}
+                    className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50"
+                  >
+                    Logout
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
 

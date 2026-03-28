@@ -1,6 +1,6 @@
 'use client';
 
-import { Bank, BankAPI, DepositRequirement, BankQuote, DashboardStats, ApiResponse, DepositRequirementAPI, RequirementDetailsAPI, mapRequirementFromAPI, mapRequirementToAPI, mapBankFromAPI, mapBankToAPI, ConsentDocumentResponse, SubmitQuotePayload } from './types';
+import { Bank, BankAPI, DepositRequirement, BankQuote, DashboardStats, ApiResponse, DepositRequirementAPI, RequirementDetailsAPI, mapRequirementFromAPI, mapRequirementToAPI, mapBankFromAPI, mapBankToAPI, ConsentDocumentResponse, SubmitQuotePayload, UserProfile, ChangePasswordPayload } from './types';
 import CryptoJS from 'crypto-js';
 
 // API Base URL - should be configured via environment variable
@@ -103,6 +103,28 @@ function buildQueryFromParams(params: URLSearchParams, excludeKeys: string[] = [
 function toNumber(value: any, fallback = 0): number {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+function firstMeaningfulValue(...values: Array<unknown>): string | undefined {
+  for (const value of values) {
+    if (value === null || value === undefined) {
+      continue;
+    }
+
+    const text = String(value).trim();
+    if (!text) {
+      continue;
+    }
+
+    const lowered = text.toLowerCase();
+    if (lowered === 'n/a' || lowered === 'na' || lowered === 'null' || lowered === 'undefined') {
+      continue;
+    }
+
+    return text;
+  }
+
+  return undefined;
 }
 
 function resolveProxyBackendMapping(url: string, method: string): { backendPath?: string; backendUrl?: string; note?: string } | null {
@@ -382,6 +404,7 @@ export const depositApi = {
       const roleFromResponse = responseData.role || responseData.Role;
       const bankIdFromResponse = responseData.bankId || responseData.BankId || responseData.BANK_ID || 
                      (roleFromResponse === 'bank' ? userIdFromResponse : undefined);
+      const bankNameFromResponse = responseData.bankName || responseData.BankName || responseData.BANK_NAME;
       
       return {
         user: {
@@ -392,7 +415,8 @@ export const depositApi = {
           name: responseData.name || responseData.Name,
           email: userIdFromResponse + '@smkc.gov.in', // Generate email from userId
           status: responseData.status || responseData.Status,
-          bankId: bankIdFromResponse // Will be userId for bank role if backend doesn't provide separate bankId
+          bankId: bankIdFromResponse, // Will be userId for bank role if backend doesn't provide separate bankId
+          bankName: bankNameFromResponse
         },
         token: responseData.token || null
       };
@@ -780,5 +804,29 @@ export const depositApi = {
     if (filters?.fromDate) params.append('fromDate', filters.fromDate);
     if (filters?.toDate) params.append('toDate', filters.toDate);
     return apiCall<any[]>(`/api/proxy/reports?${params.toString()}`);
+  },
+
+  getUserProfile: async (userId: string): Promise<UserProfile> => {
+    const profile = await apiCall<any>(`/api/proxy/profile?userId=${encodeURIComponent(userId)}`);
+    return {
+      userId: String(profile?.userId ?? profile?.UserId ?? profile?.USER_ID ?? ''),
+      role: String(profile?.role ?? profile?.Role ?? profile?.ROLE ?? 'unknown') as UserProfile['role'],
+      roleId: profile?.roleId ?? profile?.RoleId ?? profile?.ROLE_ID,
+      name: String(profile?.name ?? profile?.Name ?? profile?.NAME ?? ''),
+      status: profile?.status ?? profile?.Status ?? profile?.STATUS,
+      bankId: firstMeaningfulValue(profile?.bankId, profile?.BankId, profile?.BANK_ID, profile?.BANKID, profile?.bankCode, profile?.BANK_CODE),
+      bankName: firstMeaningfulValue(profile?.bankName, profile?.BankName, profile?.BANK_NAME, profile?.BANKNAME, profile?.nameOfBank, profile?.NAME_OF_BANK),
+    };
+  },
+
+  changePassword: async (payload: ChangePasswordPayload): Promise<{ success: boolean; message?: string }> => {
+    const response = await apiCall<any>('/api/proxy/change-password', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+    return {
+      success: true,
+      message: response?.message || response?.Message,
+    };
   },
 };

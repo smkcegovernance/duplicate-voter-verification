@@ -11,6 +11,23 @@ export interface User {
   name: string;
   status?: string; // A=Active, I=Inactive
   bankId?: string; // Only for bank users
+  bankName?: string;
+}
+
+export interface UserProfile {
+  userId: string;
+  role: UserRole | 'unknown';
+  roleId?: number;
+  name: string;
+  status?: string;
+  bankId?: string;
+  bankName?: string;
+}
+
+export interface ChangePasswordPayload {
+  userId: string;
+  oldPassword: string;
+  newPassword: string;
 }
 
 // API Response interface (UPPERCASE from .NET API)
