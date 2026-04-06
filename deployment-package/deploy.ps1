@@ -38,16 +38,36 @@ if (-not $pm2Version) {
 }
 Write-Host "  PM2: v$pm2Version" -ForegroundColor Green
 
-# Step 2: Configure npm for Windows Server 2012
+# Step 2: Check environment file
 Write-Host ""
-Write-Host "[2/6] Configuring npm..." -ForegroundColor Yellow
+Write-Host "[2/7] Checking environment file..." -ForegroundColor Yellow
+
+if (-not (Test-Path ".env.production")) {
+    Write-Host "  ERROR: .env.production not found!" -ForegroundColor Red
+    Write-Host "  The file must be in the same folder as deploy.ps1" -ForegroundColor Yellow
+    Write-Host "  Edit .env.production with your actual API_KEY and SECRET_KEY before deploying." -ForegroundColor Yellow
+    exit 1
+}
+
+# Warn if still using placeholder keys
+$envContent = Get-Content ".env.production" -Raw
+if ($envContent -match "CHANGE_ME") {
+    Write-Host "  WARNING: .env.production still contains CHANGE_ME placeholder keys!" -ForegroundColor Red
+    Write-Host "  Update API_KEY and SECRET_KEY in .env.production before going live." -ForegroundColor Yellow
+} else {
+    Write-Host "  .env.production OK" -ForegroundColor Green
+}
+
+# Step 3: Configure npm for Windows Server 2012
+Write-Host ""
+Write-Host "[3/7] Configuring npm..." -ForegroundColor Yellow
 npm config set ignore-scripts false
 npm config set engine-strict false
 Write-Host "  npm configured for compatibility" -ForegroundColor Green
 
-# Step 3: Stop existing application
+# Step 4: Stop existing application
 Write-Host ""
-Write-Host "[3/6] Stopping existing application..." -ForegroundColor Yellow
+Write-Host "[4/7] Stopping existing application..." -ForegroundColor Yellow
 
 try {
     pm2 stop voter-verification 2>$null
@@ -57,9 +77,9 @@ try {
     Write-Host "  No existing application to stop" -ForegroundColor Cyan
 }
 
-# Step 4: Clean old node_modules
+# Step 5: Clean old node_modules
 Write-Host ""
-Write-Host "[4/6] Cleaning old dependencies..." -ForegroundColor Yellow
+Write-Host "[5/7] Cleaning old dependencies..." -ForegroundColor Yellow
 if (Test-Path "node_modules") {
     Remove-Item -Recurse -Force "node_modules" -ErrorAction SilentlyContinue
     Write-Host "  Old dependencies removed" -ForegroundColor Green
@@ -67,9 +87,9 @@ if (Test-Path "node_modules") {
     Write-Host "  No old dependencies to clean" -ForegroundColor Cyan
 }
 
-# Step 5: Install dependencies
+# Step 6: Install dependencies
 Write-Host ""
-Write-Host "[5/6] Installing dependencies..." -ForegroundColor Yellow
+Write-Host "[6/7] Installing dependencies..." -ForegroundColor Yellow
 if (-not (Test-Path "package.json")) {
     Write-Host "ERROR: package.json not found in current directory!" -ForegroundColor Red
     Write-Host "Make sure you're running this script from the deployment folder" -ForegroundColor Yellow
@@ -93,9 +113,9 @@ if ($LASTEXITCODE -ne 0) {
 }
 Write-Host "  Dependencies installed successfully" -ForegroundColor Green
 
-# Step 6: Start application
+# Step 7: Start application
 Write-Host ""
-Write-Host "[6/6] Starting application..." -ForegroundColor Yellow
+Write-Host "[7/7] Starting application..." -ForegroundColor Yellow
 
 # Check for ecosystem config
 if (-not (Test-Path "ecosystem.config.js")) {
